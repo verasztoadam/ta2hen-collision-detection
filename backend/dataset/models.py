@@ -16,3 +16,15 @@ class DataSet(models.Model):
             "name": self.name,
             "status": self.status
         }
+
+
+class DataFrame:
+    timestamp = models.FloatField()
+    content = models.CharField()
+
+    def dict(self) -> dict:
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp,
+            "content": self.content
+        }

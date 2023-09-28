@@ -1,9 +1,9 @@
 import 'bootstrap/dist/css/bootstrap.css';
 import "./App.css"
 
-import * as bootstraő from 'bootstrap'
+import * as bootstrap from 'bootstrap'
 
-import { lazy, useRef, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Component imports
