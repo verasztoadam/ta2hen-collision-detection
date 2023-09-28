@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 
 
@@ -18,13 +20,14 @@ class DataSet(models.Model):
         }
 
 
-class DataFrame:
+class DataFrame(models.Model):
     timestamp = models.FloatField()
     content = models.CharField()
+    dataset = models.ForeignKey(DataSet, on_delete=models.CASCADE)
 
     def dict(self) -> dict:
         return {
             "id": self.id,
             "timestamp": self.timestamp,
-            "content": self.content
+            "content": json.loads(self.content)
         }
