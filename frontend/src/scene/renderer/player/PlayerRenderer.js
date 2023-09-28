@@ -12,7 +12,10 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         this.scene.background = new THREE.Color(0xCCCCCC);
 
         // Add controller
-        this.controller = new Controller(1000);
+        this.controller = new Controller(1000,
+            (timestamp) => { return 50 },
+            (frameId) => { return 0 }
+        );
 
         // Add camera with orbit controls
         this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
