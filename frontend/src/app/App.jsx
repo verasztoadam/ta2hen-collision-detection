@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 const Header = lazy(() => import("../header/Header"));
 const Upload = lazy(() => import("../upload/Upload"));
 const Datasets = lazy(() => import("../datasets/Datasets"));
+const Player = lazy(() => import("../player/Player"));
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Routes>
             <Route exact path="/upload" element={<Upload />} />
             <Route exact path="/datasets" element={<Datasets />} />
+            <Route exact path="/player/:id" element={<Player />} />
             <Route path="*" element={<Navigate to="/upload" replace={true} />} />
           </Routes>
         </Suspense>
