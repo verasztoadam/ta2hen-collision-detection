@@ -1,0 +1,42 @@
+version: '1'
+services:
+  db: 
+    image: postgres:16
+    volumes: 
+      - ./postgres:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 1s
+      retries: 25
+  backend:
+    build: ./backend
+    entrypoint: ./entrypoint.sh
+    volumes:
+      - ./backend:/usr/src/backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+  celery:
+    build: ./backend
+    command: celery -A backend worker -l INFO
+    volumes:
+      - ./backend:/usr/src/backend
+    depends_on:
+      - rabbitmq
+  frontend:
+    build: ./frontend
+    command: npm run dev
+    volumes:
+      - ./frontend:/usr/src/frontend
+      - /usr/src/frontend/node_modules
+    ports:
+      - "80:3000"    
+    depends_on:
+      - backend
+  rabbitmq:
+    image: rabbitmq
