@@ -26,7 +26,7 @@ class Controller {
         this.gui.add(this.controlOptions, "nextFrame").name("Next frame");
         this.gui.add(this.controlOptions, "previousFrame").name("Previous frame");
 
-        this.frameIndexController = this.gui.add(this.controlOptions, "frameIndex", 0, frameCount - 1, 1)
+        this.frameIndexController = this.gui.add(this.controlOptions, "frameIndex", 0, frameCount, 1)
             .name("Frame index").onFinishChange(this.changeFrame.bind(this));
 
         this.timestampController = this.gui.add(this.controlOptions, "timestamp").name("Timestamp");
@@ -65,6 +65,10 @@ class Controller {
     reset() {
         this.gui.destroy();
         this.stopTimer();
+    }
+
+    get currentFrame() {
+        return this.frameIndexController.getValue();
     }
 }
 

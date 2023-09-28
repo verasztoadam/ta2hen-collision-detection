@@ -4,6 +4,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import Controller from '../../../player/Controller';
 
 export default class PlayerSceneRenderer extends SceneRenderer {
+    constructor(data) {
+        super();
+        this.data = data;
+    }
+
     init(canvasRef, width, height) {
         super.init(canvasRef, width, height);
 
@@ -12,8 +17,8 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         this.scene.background = new THREE.Color(0xCCCCCC);
 
         // Add controller
-        this.controller = new Controller(1000,
-            (timestamp) => { return 50 },
+        this.controller = new Controller(this.data.length - 1,
+            (timestamp) => { return this.onFrameRequest(timestamp) },
             (frameId) => { return 0 }
         );
 
@@ -42,6 +47,12 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         const gridHelper = new THREE.GridHelper();
         this.scene.add(gridHelper);
 
+        // Sphere
+        const geometrySphere = new THREE.SphereGeometry(0.5);
+        const materialSphere = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+        this.sphere = new THREE.Mesh(geometrySphere, materialSphere);
+        this.scene.add(this.sphere);
+
         // Start rendering
         this.update();
     }
@@ -55,6 +66,7 @@ export default class PlayerSceneRenderer extends SceneRenderer {
     }
 
     update() {
+        this.sphere.position.set(this.data[this.controller.currentFrame].content.objects[0].x, 0, this.data[this.controller.currentFrame].content.objects[0].y);
         this.renderer.render(this.scene, this.camera);
         this.controls.update();
         requestAnimationFrame(this.update.bind(this));
@@ -62,5 +74,15 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
     reset() {
         this.controller.reset();
+    }
+
+    onFrameRequest(timestamp) {
+        var current = this.controller.currentFrame;
+        for (; current < this.data.length; ++current) {
+            if (this.data[current].timestamp * 1000 > timestamp) {
+                return Math.max(0, current - 1);
+            }
+        }
+        return current - 1;
     }
 }
