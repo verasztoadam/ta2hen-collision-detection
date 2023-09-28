@@ -12,4 +12,6 @@ export default class SceneRenderer {
     onWindowResize(width, height) {
         this.renderer.setSize(width, height);
     }
+
+    reset() { }
 }

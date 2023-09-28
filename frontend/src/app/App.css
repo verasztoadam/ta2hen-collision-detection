@@ -16,3 +16,11 @@ body {
   position: relative;
   flex-grow: 1;
 }
+
+.c input {
+  line-height: normal;
+}
+
+#timestampController input {
+  pointer-events: none;
+}

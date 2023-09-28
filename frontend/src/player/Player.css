@@ -9,3 +9,10 @@
     flex-grow: 1;
     overflow: hidden;
 }
+
+#controllerGui {
+    position: absolute;
+    top: 60px;
+    right: 0px;
+    margin: 0px;
+}

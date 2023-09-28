@@ -20,6 +20,7 @@ export default class Scene extends React.Component {
     }
 
     componentWillUnmount() {
+        this.props.renderer.reset();
         window.removeEventListener('resize', this.onWindowResize);
     }
 
