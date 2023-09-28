@@ -1,12 +1,15 @@
 import 'bootstrap/dist/css/bootstrap.css';
 import "./App.css"
 
+import * as bootstraő from 'bootstrap'
+
 import { lazy, useRef, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Component imports
 const Header = lazy(() => import("../header/Header"));
 const Upload = lazy(() => import("../upload/Upload"));
+const Datasets = lazy(() => import("../datasets/Datasets"));
 
 function App() {
   return (
@@ -16,7 +19,8 @@ function App() {
         <Suspense fallback={<></>}>
           <Routes>
             <Route exact path="/upload" element={<Upload />} />
-            <Route path="/" element={<Navigate to="/upload" replace={true} />} />
+            <Route exact path="/datasets" element={<Datasets />} />
+            <Route path="*" element={<Navigate to="/upload" replace={true} />} />
           </Routes>
         </Suspense>
       </div>

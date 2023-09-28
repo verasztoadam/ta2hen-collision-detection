@@ -9,7 +9,6 @@ function Upload() {
             method: 'POST',
             body: new FormData(document.getElementById('datasetUploadForm')),
         }).then((response) => {
-            console.log(response.status);
             switch (response.status) {
                 case 200:
                     alert("Upload successful");

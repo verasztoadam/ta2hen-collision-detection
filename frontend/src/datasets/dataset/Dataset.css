@@ -1,0 +1,19 @@
+.list-element-container {
+    display: flex;
+    justify-content: center;
+}
+
+.list-element-container>.dataset-container {
+    max-width: 800px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background-color: #eeeeee;
+    border-radius: 7.5px;
+    padding: 20px;
+    margin: 2.5px 0px 2.5px 0px;
+}
+
+.list-element-container>.dataset-container>.dataset-info-container {
+    flex-grow: 1;
+}

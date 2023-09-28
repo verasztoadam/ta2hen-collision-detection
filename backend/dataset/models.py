@@ -9,3 +9,10 @@ class DataSet(models.Model):
     name = models.CharField(default="")
     file = models.FileField(upload_to="./datasets")
     status = models.CharField(default=STATUS_IN_PROGRESS)
+
+    def dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "status": self.status
+        }

@@ -1,3 +1,5 @@
+import json
+
 from django.http import HttpResponse, HttpRequest
 from .models import DataSet
 from .tasks import process_data
@@ -13,3 +15,7 @@ def upload(request: HttpRequest):
     ret = HttpResponse("Invalid input")
     ret.status_code = 400
     return ret
+
+
+def get_datasets(request: HttpRequest):
+    return HttpResponse(json.dumps({"datasets": list(map(lambda dataset: dataset.dict(), DataSet.objects.all()))}))

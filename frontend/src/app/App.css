@@ -8,6 +8,8 @@ body {
   height: 100%;
   padding-top: 60px;
   display: flex;
+  min-width: 640px;
+  min-height: 360px;
 }
 
 #contentContainer {
