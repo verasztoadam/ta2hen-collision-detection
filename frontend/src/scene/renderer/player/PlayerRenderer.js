@@ -54,17 +54,23 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         const geometrySphere = new THREE.SphereGeometry(0.5);
         const materialSphere = new THREE.MeshBasicMaterial({ color: 0x0000ff });
         this.sphere = new THREE.Mesh(geometrySphere, materialSphere);
-        this.scene.add(this.sphere);
+
+        this.spheres = [
+            this.sphere,
+            this.sphere.clone(),
+            this.sphere.clone(),
+            this.sphere.clone()
+        ]
+        this.scene.add(this.spheres[0]);
+        this.scene.add(this.spheres[1]);
+        this.scene.add(this.spheres[2]);
+        this.scene.add(this.spheres[3]);
 
         const loader = new FontLoader();
         loader.load('/fonts/helvetiker_regular.typeface.json', (font) => {
             if (!this.font) {
                 // Save font before rendering
                 this.font = font;
-
-                // Display
-                this.fd = new FloatingDisplay(this.font, "Test message");
-                this.scene.add(this.fd);
 
                 // Start rendering
                 this.update();
@@ -81,21 +87,18 @@ export default class PlayerSceneRenderer extends SceneRenderer {
     }
 
     update() {
-        this.fd.lookAt(this.camera.position)
-
-        this.sphere.position.set(this.data[this.controller.currentFrame].content.objects[0].x, 0, this.data[this.controller.currentFrame].content.objects[0].y);
-        this.fd.position.set(this.data[this.controller.currentFrame].content.objects[0].x, 1, this.data[this.controller.currentFrame].content.objects[0].y);
-        this.controller.setTimestamDisplay(this.data[this.controller.currentFrame].timestamp);
-
-        // Arrow
-        if (this.arrow) {
-            this.scene.remove(this.arrow);
+        const currentData = this.data[this.controller.currentFrame];
+        const objects = currentData.content.objects;
+        // console.log(objects[0]);
+        for (var i = 0; i < this.spheres.length; i++) {
+            this.spheres[i].position.set(
+                objects[i].dx,
+                0,
+                objects[i].dy,
+            );
         }
-        this.arrow = new Arrow([
-            new THREE.Vector3(0, 1, 0),
-            new THREE.Vector3(this.data[this.controller.currentFrame].content.objects[0].x, 1, this.data[this.controller.currentFrame].content.objects[0].y),
-        ], 15, 0x000000);
-        this.scene.add(this.arrow);
+
+        this.controller.setTimestamDisplay(currentData.timestamp);
 
         this.renderer.render(this.scene, this.camera);
         this.controls.update();

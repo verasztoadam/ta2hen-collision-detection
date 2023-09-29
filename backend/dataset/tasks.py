@@ -1,8 +1,6 @@
-import json
-import math
-
 from celery import shared_task
 
+from .data_loader import read_dataset
 from .models import DataSet, DataFrame
 
 
@@ -10,31 +8,12 @@ from .models import DataSet, DataFrame
 def process_data(dataset_id):
     dataset = DataSet.objects.get(pk=dataset_id)
     try:
-        # ------------------------------------------------------------------
-        # TODO: Remove
-        # Mock data
-        frames = []
-        for i in range(1000):
-            frames.append(
-                DataFrame(
-                    timestamp=i * 0.02,
-                    dataset=dataset,
-                    content=json.dumps({
-                        "objects": [
-                            {
-                                "x": 5 * math.sin(math.pi / 2 * i * 0.02),
-                                "y": 5 * math.cos(math.pi / 2 * i * 0.02),
-                            }
-                        ]
-                    })
-                )
-            )
-        # ------------------------------------------------------------------
-
-        DataFrame.objects.bulk_create(frames)
+        sensor_datas = read_dataset(dataset.file.name)
+        DataFrame.objects.bulk_create(list(map(lambda sensor_data: sensor_data.to_data_frame(dataset), sensor_datas)))
         dataset.status = DataSet.STATUS_COMPLETED
 
-    except Exception:
+    except Exception as e:
+        print(e)
         dataset.status = DataSet.STATUS_FAILED
 
     dataset.save()
