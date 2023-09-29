@@ -18,8 +18,8 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
         // Add controller
         this.controller = new Controller(this.data.length - 1,
-            (timestamp) => { return this.onFrameRequest(timestamp) },
-            (frameId) => { return 0 }
+            (timestamp) => { return this.onFrameRequest(timestamp); },
+            (frameId) => { return this.data[frameId].timestamp * 1000; }
         );
 
         // Add camera with orbit controls
@@ -67,6 +67,7 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
     update() {
         this.sphere.position.set(this.data[this.controller.currentFrame].content.objects[0].x, 0, this.data[this.controller.currentFrame].content.objects[0].y);
+        this.controller.setTimestamDisplay(this.data[this.controller.currentFrame].timestamp);
         this.renderer.render(this.scene, this.camera);
         this.controls.update();
         requestAnimationFrame(this.update.bind(this));

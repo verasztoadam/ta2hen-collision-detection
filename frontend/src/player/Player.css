@@ -16,3 +16,8 @@
     right: 0px;
     margin: 0px;
 }
+
+#timestampController input {
+    pointer-events: none;
+    opacity: 0.75;
+}
