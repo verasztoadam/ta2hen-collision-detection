@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import SceneRenderer from '../../SceneRenderer';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import Controller from '../../../player/Controller';
+import FloatingDisplay from '../../../utils/FloatingDisplay';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 
 export default class PlayerSceneRenderer extends SceneRenderer {
     constructor(data) {
@@ -53,8 +55,21 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         this.sphere = new THREE.Mesh(geometrySphere, materialSphere);
         this.scene.add(this.sphere);
 
-        // Start rendering
-        this.update();
+        const loader = new FontLoader();
+        loader.load('/fonts/helvetiker_regular.typeface.json', (font) => {
+            if (!this.font) {
+                // Save font before rendering
+                this.font = font;
+
+                // Display
+                this.fd = new FloatingDisplay(this.font, "Test message");
+                // this.fd.addToScene(this.scene);
+                this.scene.add(this.fd);
+
+                // Start rendering
+                this.update();
+            }
+        });
     }
 
     onWindowResize(width, height) {
@@ -66,7 +81,10 @@ export default class PlayerSceneRenderer extends SceneRenderer {
     }
 
     update() {
+        this.fd.lookAt(this.camera.position)
+
         this.sphere.position.set(this.data[this.controller.currentFrame].content.objects[0].x, 0, this.data[this.controller.currentFrame].content.objects[0].y);
+        this.fd.position.set(this.data[this.controller.currentFrame].content.objects[0].x, 1, this.data[this.controller.currentFrame].content.objects[0].y);
         this.controller.setTimestamDisplay(this.data[this.controller.currentFrame].timestamp);
         this.renderer.render(this.scene, this.camera);
         this.controls.update();
