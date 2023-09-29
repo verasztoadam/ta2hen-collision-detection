@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import Controller from '../../../player/Controller';
 import FloatingDisplay from '../../../utils/FloatingDisplay';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import Arrow from '../../../utils/Arrow';
 
 export default class PlayerSceneRenderer extends SceneRenderer {
     constructor(data) {
@@ -63,7 +64,6 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
                 // Display
                 this.fd = new FloatingDisplay(this.font, "Test message");
-                // this.fd.addToScene(this.scene);
                 this.scene.add(this.fd);
 
                 // Start rendering
@@ -86,6 +86,17 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         this.sphere.position.set(this.data[this.controller.currentFrame].content.objects[0].x, 0, this.data[this.controller.currentFrame].content.objects[0].y);
         this.fd.position.set(this.data[this.controller.currentFrame].content.objects[0].x, 1, this.data[this.controller.currentFrame].content.objects[0].y);
         this.controller.setTimestamDisplay(this.data[this.controller.currentFrame].timestamp);
+
+        // Arrow
+        if (this.arrow) {
+            this.scene.remove(this.arrow);
+        }
+        this.arrow = new Arrow([
+            new THREE.Vector3(0, 1, 0),
+            new THREE.Vector3(this.data[this.controller.currentFrame].content.objects[0].x, 1, this.data[this.controller.currentFrame].content.objects[0].y),
+        ], 15, 0x000000);
+        this.scene.add(this.arrow);
+
         this.renderer.render(this.scene, this.camera);
         this.controls.update();
         requestAnimationFrame(this.update.bind(this));
