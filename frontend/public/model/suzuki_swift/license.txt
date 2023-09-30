@@ -1,0 +1,11 @@
+Model Information:
+* title:	Suzuki Swift
+* source:	https://sketchfab.com/3d-models/suzuki-swift-218c3c0c6afd4d0eb343bd50d8868fd0
+* author:	Casacade Models (https://sketchfab.com/CasacadeOperations)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Suzuki Swift" (https://sketchfab.com/3d-models/suzuki-swift-218c3c0c6afd4d0eb343bd50d8868fd0) by Casacade Models (https://sketchfab.com/CasacadeOperations) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -5,6 +5,7 @@ import Controller from '../../../player/Controller';
 import FloatingDisplay from '../../../utils/FloatingDisplay';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import Arrow from '../../../utils/Arrow';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export default class PlayerSceneRenderer extends SceneRenderer {
     constructor(data) {
@@ -27,7 +28,9 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
         // Add camera with orbit controls
         this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-        this.camera.position.z = 5;
+        this.camera.position.y = 15;
+        this.camera.position.z = 15;
+        this.camera.position.x = -15;
         this.controls = new OrbitControls(this.camera, canvasRef);
 
         // Ambient light
@@ -46,10 +49,6 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         plane.rotateX(Math.PI / -2);
         this.scene.add(plane);
 
-        // Grid helper
-        const gridHelper = new THREE.GridHelper();
-        this.scene.add(gridHelper);
-
         // Sphere
         const geometrySphere = new THREE.SphereGeometry(0.5);
         const materialSphere = new THREE.MeshBasicMaterial({ color: 0x0000ff });
@@ -65,6 +64,16 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         this.scene.add(this.spheres[1]);
         this.scene.add(this.spheres[2]);
         this.scene.add(this.spheres[3]);
+
+        this.displays = []
+
+        // Car
+        this.loadCar();
+        this.carArrow = new Arrow([
+            new THREE.Vector3(2, 0.3, 0),
+            new THREE.Vector3(4, 0.3, 0.01),
+        ], 0, 0x10A000)
+        this.scene.add(this.carArrow);
 
         const loader = new FontLoader();
         loader.load('/fonts/helvetiker_regular.typeface.json', (font) => {
@@ -89,15 +98,36 @@ export default class PlayerSceneRenderer extends SceneRenderer {
     update() {
         const currentData = this.data[this.controller.currentFrame];
         const objects = currentData.content.objects;
-        // console.log(objects[0]);
+
+        this.removeDisplays();
+
         for (var i = 0; i < this.spheres.length; i++) {
             this.spheres[i].position.set(
                 objects[i].dx,
                 0,
                 objects[i].dy,
             );
-            this.spheres[i].visible = (objects[i].dx !== 0 || objects[i].dy !== 0 || objects[i].vx !== 0 || objects[i].vy !== 0);
+
+            var visible = (objects[i].dx !== 0 || objects[i].dy !== 0 || objects[i].vx !== 0 || objects[i].vy !== 0);
+            this.spheres[i].visible = visible;
+
+            if (visible) {
+                // Object display
+                const display = new FloatingDisplay(this.font, "dx: " + objects[i].dx.toFixed(2) + "\ndy: " + objects[i].dy.toFixed(2));
+                display.position.set(objects[i].dx, 2, objects[i].dy);
+                display.lookAt(this.camera.position);
+
+                this.displays.push(display);
+                this.scene.add(display);
+            }
         }
+
+        // Car display
+        const display = new FloatingDisplay(this.font, "v: " + currentData.content.v_car.toFixed(2));
+        display.position.set(0, 3, 0);
+        display.lookAt(this.camera.position);
+        this.displays.push(display);
+        this.scene.add(display);
 
         this.controller.setTimestamDisplay(currentData.timestamp);
 
@@ -118,5 +148,32 @@ export default class PlayerSceneRenderer extends SceneRenderer {
             }
         }
         return current - 1;
+    }
+
+    removeDisplays() {
+        for (var i = 0; i < this.displays.length; i++) {
+            this.scene.remove(this.displays[i]);
+        }
+        this.displays = []
+    }
+
+    loadCar() {
+        const loader = new GLTFLoader();
+        loader.load(
+            '/model/suzuki_swift/scene.gltf',
+            (gltf) => {
+                gltf.scene.rotateY(Math.PI / 2);
+                gltf.scene.scale.set(0.5, 0.5, 0.5);
+                gltf.scene.translateX(-0.9);
+                gltf.scene.translateZ(1.8);
+                this.scene.add(gltf.scene);
+            },
+            function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+            function (error) {
+                console.log(error);
+            }
+        );
     }
 }

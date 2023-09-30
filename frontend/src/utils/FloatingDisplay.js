@@ -2,17 +2,16 @@ import * as THREE from 'three';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
 export default class FloatingDisplay extends THREE.Group {
-    BORDER_RADIUS = 0.05;
-    FONT_HEIGHT = 0.001;
-    PADDING = 0.1;
-    FONTSIZE = 0.1;
-
-    constructor(font, message) {
+    BORDER_RADIUS = 0.3;
+    FONT_HEIGHT = 0.01;
+    PADDING = 0.5;
+    constructor(font, message, size = 1) {
         super();
+        this.fontsize = size;
 
         // Text
         const textGeometry = new TextGeometry(message, {
-            size: this.FONTSIZE,
+            size: this.fontsize,
             height: this.FONT_HEIGHT,
             font: font
         });
@@ -22,7 +21,7 @@ export default class FloatingDisplay extends THREE.Group {
         var height = textGeometry.boundingBox.max.y - textGeometry.boundingBox.min.y + this.PADDING * 2;
 
         this.text = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide }));
-        this.text.position.copy(new THREE.Vector3(this.PADDING - width / 2, height - this.PADDING - this.FONTSIZE, this.FONT_HEIGHT / 2));
+        this.text.position.copy(new THREE.Vector3(this.PADDING - width / 2, height - this.PADDING - this.fontsize, this.FONT_HEIGHT / 2));
         this.add(this.text);
 
         // Background
