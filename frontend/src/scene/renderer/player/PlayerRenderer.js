@@ -8,7 +8,7 @@ import Arrow from '../../../utils/Arrow';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export default class PlayerSceneRenderer extends SceneRenderer {
-    TRAJECTORY_LOOKUP_TIME = 2;
+    TRAJECTORY_LOOKUP_TIME = 5;
     TRAJECTORY_TH_DIST = 1.5;
 
     constructor(data) {
@@ -266,7 +266,16 @@ export default class PlayerSceneRenderer extends SceneRenderer {
                             var carPos = new THREE.Vector3(step * content.v_car, 0, 0).setY(this.spheres[i].position.y);
                             var objPos = new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(step * objects[i].speed));
                             if (carPos.distanceTo(objPos) < this.TRAJECTORY_TH_DIST) {
-                                console.log("Line danger");
+                                var angle = Math.abs(uni.angleTo(new THREE.Vector3(1, 0, 0)));
+                                if (angle > Math.PI) {
+                                    angle = 2 * Math.PI - angle;
+                                }
+                                if ((angle < Math.PI / 4) && Math.abs(objects[i].dy) < 5) {
+                                    this.dangers[i] = "CPLA";
+                                }
+                                else if ((angle >= Math.PI / 4) && (angle <= Math.PI * 3 / 4)) {
+                                    this.dangers[i] = "CPNCO";
+                                }
                                 break;
                             }
                         }
