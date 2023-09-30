@@ -5,7 +5,7 @@ export default class FloatingDisplay extends THREE.Group {
     BORDER_RADIUS = 0.3;
     FONT_HEIGHT = 0.01;
     PADDING = 0.5;
-    constructor(font, message, size = 1) {
+    constructor(font, message, size = 1, danger = false) {
         super();
         this.fontsize = size;
 
@@ -20,7 +20,7 @@ export default class FloatingDisplay extends THREE.Group {
         var width = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x + this.PADDING * 2;
         var height = textGeometry.boundingBox.max.y - textGeometry.boundingBox.min.y + this.PADDING * 2;
 
-        this.text = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide }));
+        this.text = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: danger ? 0xFFFFFF : 0x000000, side: THREE.DoubleSide }));
         this.text.position.copy(new THREE.Vector3(this.PADDING - width / 2, height - this.PADDING - this.fontsize, this.FONT_HEIGHT / 2));
         this.add(this.text);
 
@@ -37,7 +37,7 @@ export default class FloatingDisplay extends THREE.Group {
             .quadraticCurveTo(0, 0, 0, this.BORDER_RADIUS)
 
         const bgGeometry = new THREE.ShapeGeometry(bgShape);
-        this.bg = new THREE.Mesh(bgGeometry, new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide }));
+        this.bg = new THREE.Mesh(bgGeometry, new THREE.MeshBasicMaterial({ color: danger ? 0xFF0000 : 0xaaaaaa, side: THREE.DoubleSide }));
         this.bg.position.copy(new THREE.Vector3(- width / 2, 0, 0));
         this.add(this.bg);
 

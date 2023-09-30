@@ -9,6 +9,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export default class PlayerSceneRenderer extends SceneRenderer {
     TRAJECTORY_LOOKUP_TIME = 2;
+    TRAJECTORY_TH_DIST = 1.5;
 
     constructor(data) {
         super();
@@ -20,7 +21,7 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
         // Init scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0xCCCCCC);
+        this.scene.background = new THREE.Color(0xDDDDDD);
 
         // Add controller
         this.controller = new Controller(this.data.length - 1,
@@ -28,12 +29,17 @@ export default class PlayerSceneRenderer extends SceneRenderer {
             (frameId) => { return this.data[frameId].timestamp * 1000; }
         );
 
+        const gridHelper = new THREE.GridHelper(500, 500);
+        this.scene.add(gridHelper);
+
         // Add camera with orbit controls
-        this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 100);
         this.camera.position.y = 15;
         this.camera.position.z = 15;
         this.camera.position.x = -15;
         this.controls = new OrbitControls(this.camera, canvasRef);
+        this.controls.maxPolarAngle = Math.PI / 2 - 0.01;
+        this.controls.maxDistance = 40;
 
         // Ambient light
         const ambientLight = new THREE.AmbientLight(0xE0E0E0);
@@ -45,15 +51,15 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         this.scene.add(directionalLight);
 
         // Plane
-        const geometry = new THREE.PlaneGeometry(200, 200);
+        const geometry = new THREE.PlaneGeometry(500, 500);
         const material = new THREE.MeshBasicMaterial({ color: 0x999999, side: THREE.DoubleSide });
         const plane = new THREE.Mesh(geometry, material);
         plane.rotateX(Math.PI / -2);
         this.scene.add(plane);
 
         // Sphere
-        const geometrySphere = new THREE.SphereGeometry(0.5);
-        const materialSphere = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+        const geometrySphere = new THREE.SphereGeometry(1);
+        const materialSphere = new THREE.MeshPhongMaterial({ color: 0x0000ff });
         this.sphere = new THREE.Mesh(geometrySphere, materialSphere);
 
         this.spheres = [
@@ -100,37 +106,27 @@ export default class PlayerSceneRenderer extends SceneRenderer {
     update() {
         const currentData = this.data[this.controller.currentFrame];
         const objects = currentData.content.objects;
+        this.dangers = [null, null, null, null]
 
         this.removeDisplays();
-
-        this.generateSpeed(currentData);
-
-        this.carArrow.visible = currentData.content.v_car > 0;
 
         for (var i = 0; i < this.spheres.length; i++) {
             this.spheres[i].position.set(
                 objects[i].dx,
-                0,
+                1,
                 objects[i].dy,
             );
 
             var visible = (objects[i].dx !== 0 || objects[i].dy !== 0 || objects[i].vx !== 0 || objects[i].vy !== 0);
             this.spheres[i].visible = visible;
-
-            if (visible) {
-                // Object display
-                const display = new FloatingDisplay(this.font, "dx: " + objects[i].dx.toFixed(2) + "\ndy: " + objects[i].dy.toFixed(2) +
-                    "\nv: " + objects[i].speed);
-                display.position.set(objects[i].dx, 2, objects[i].dy);
-                display.lookAt(this.camera.position);
-
-                this.displays.push(display);
-                this.scene.add(display);
-            }
         }
 
+        this.generateSpeed(currentData);
+
+        this.carArrow.visible = currentData.content.v_car > 0;
+
         // Car display
-        const display = new FloatingDisplay(this.font, "v: " + currentData.content.v_car.toFixed(2));
+        const display = new FloatingDisplay(this.font, "v: " + currentData.content.v_car.toFixed(2) + " m/s");
         display.position.set(0, 3, 0);
         display.lookAt(this.camera.position);
         this.displays.push(display);
@@ -160,6 +156,21 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         }
 
         this.controller.setTimestamDisplay(currentData.timestamp);
+
+        for (var i = 0; i < this.spheres.length; i++) {
+            var visible = (objects[i].dx !== 0 || objects[i].dy !== 0 || objects[i].vx !== 0 || objects[i].vy !== 0);
+            if (visible) {
+                // Object display
+                const display = new FloatingDisplay(this.font, (this.dangers[i] ? "Scenario: " + this.dangers[i] + "\n" : "")
+                    + "dx: " + objects[i].dx.toFixed(2) + " m\ndy: " + objects[i].dy.toFixed(2) +
+                    " m \nv: " + objects[i].speed + " m/s", 1, this.dangers[i]);
+                display.position.set(objects[i].dx, 2.5, objects[i].dy);
+                display.lookAt(this.camera.position);
+
+                this.displays.push(display);
+                this.scene.add(display);
+            }
+        }
 
         this.renderer.render(this.scene, this.camera);
         this.controls.update();
@@ -218,15 +229,48 @@ export default class PlayerSceneRenderer extends SceneRenderer {
                 var object_vy = objects[i].vy + content.yaw_car * objects[i].dx;
                 objects[i].speed = Math.sqrt(object_vx * object_vx + object_vy * object_vy).toFixed(2);
 
-
-                if (objects[i].speed >= 0.01) {
+                if (objects[i].speed > 0.03) {
                     const uni = new THREE.Vector3(object_vx / objects[i].speed, 0, object_vy / objects[i].speed);
                     const arrow = new Arrow([
-                        new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(0.75)),
-                        new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(2.75)),
+                        new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(1.05).setY(0.3)),
+                        new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(2.75).setY(0.3)),
                     ], 0, 0x10A000)
                     this.scene.add(arrow);
                     this.displays.push(arrow);
+
+                    const trajectoryArrow = new Arrow([
+                        new THREE.Vector3().copy(this.spheres[i].position).setY(0.1),
+                        new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(this.TRAJECTORY_LOOKUP_TIME * objects[i].speed)).setY(0.1),
+                    ], 0, 0xb00000)
+                    this.scene.add(trajectoryArrow);
+                    this.displays.push(trajectoryArrow);
+
+                    // Calculate intersection
+                    const radius = content.v_car / content.yaw_car;
+                    if (content.v_car > 0.01 && Math.abs(radius) < 50) {
+                        for (var step = 0.005; step < this.TRAJECTORY_LOOKUP_TIME; step += 0.005) {
+                            var carPos = new THREE.Vector3(
+                                Math.abs(radius) * Math.sin(step * Math.abs(content.yaw_car)),
+                                this.spheres[i].position.y,
+                                radius * (1 - Math.cos(step * content.yaw_car)));
+
+                            var objPos = new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(step * objects[i].speed));
+                            if (carPos.distanceTo(objPos) < this.TRAJECTORY_TH_DIST) {
+                                this.dangers[i] = ["CPTA"];
+                                break;
+                            }
+                        }
+                    }
+                    else if (content.v_car > 0.01) {
+                        for (var step = 0.005; step < this.TRAJECTORY_LOOKUP_TIME; step += 0.005) {
+                            var carPos = new THREE.Vector3(step * content.v_car, 0, 0).setY(this.spheres[i].position.y);
+                            var objPos = new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(step * objects[i].speed));
+                            if (carPos.distanceTo(objPos) < this.TRAJECTORY_TH_DIST) {
+                                console.log("Line danger");
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }

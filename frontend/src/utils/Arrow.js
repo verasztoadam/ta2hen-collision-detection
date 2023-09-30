@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 export default class Arrow extends THREE.Group {
     STEPS = 100;
-    WIDTH = 0.25;
+    WIDTH = 0.35;
     HEIGHT = 0.025;
 
     constructor(points, level, color) {
