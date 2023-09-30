@@ -40,7 +40,7 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         this.scene.add(directionalLight);
 
         // Plane
-        const geometry = new THREE.PlaneGeometry(100, 100);
+        const geometry = new THREE.PlaneGeometry(200, 200);
         const material = new THREE.MeshBasicMaterial({ color: 0x999999, side: THREE.DoubleSide });
         const plane = new THREE.Mesh(geometry, material);
         plane.rotateX(Math.PI / -2);
@@ -96,6 +96,7 @@ export default class PlayerSceneRenderer extends SceneRenderer {
                 0,
                 objects[i].dy,
             );
+            this.spheres[i].visible = (objects[i].dx !== 0 || objects[i].dy !== 0 || objects[i].vx !== 0 || objects[i].vy !== 0);
         }
 
         this.controller.setTimestamDisplay(currentData.timestamp);

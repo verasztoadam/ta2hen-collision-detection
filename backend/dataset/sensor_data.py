@@ -24,6 +24,9 @@ class Object:
             "ay": self.ay,
         }
 
+    def is_detecting(self):
+        return self.dx or self.dy or self.vx or self.vy
+
 
 class SensorData:
     NUM_OF_OBJECTS = 4

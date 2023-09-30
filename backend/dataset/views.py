@@ -23,4 +23,4 @@ def get_datasets(_: HttpRequest):
 
 def get_dataframes(_: HttpRequest, dataset_id: int):
     return HttpResponse(
-        json.dumps({"dataframes": list(map(lambda dataframe: dataframe.dict(), DataFrame.objects.filter(dataset=dataset_id).order_by("pk")))}))
+        json.dumps({"dataframes": list(map(lambda dataframe: dataframe.dict(), DataFrame.objects.filter(dataset=dataset_id).order_by("timestamp")))}))
