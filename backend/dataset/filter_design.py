@@ -1,4 +1,6 @@
-import pandas
+import copy
+import math
+
 import pandas as pd
 
 
@@ -23,6 +25,9 @@ class Object:
             "ax": self.ax,
             "ay": self.ay,
         }
+
+    def is_detecting(self):
+        return self.dx or self.dy or self.vx or self.vy
 
 
 class SensorData:
@@ -80,36 +85,47 @@ def predict(next_t: float, last_state: SensorData) -> SensorData:
     vehicle_v = last_state.v_car + last_state.a_car * dt
     vehicle_d = last_state.v_car * dt + 0.5 * last_state.a_car * (dt ** 2)
 
-    # """Object values in the stationary coordinate system"""
-    # object_ax = vehicle_data.ax + self.ax
-    # object_ay = vehicle_data.ay + self.ay
-    # object_vx = (vehicle_data.vx + self.vx - vehicle_data.angular_speed * self.dy) + (vehicle_data.ax + self.ax) * dt
-    # object_vy = (vehicle_data.vy + self.vy + vehicle_data.angular_speed * self.dx) + (vehicle_data.ay + self.ay) * dt
-    # object_dx = (self.dx + (vehicle_data.vx + self.vx - vehicle_data.angular_speed * self.dy) * dt
-    #              + 0.5 * (vehicle_data.ax + self.ax) * (dt ** 2))
-    # object_dy = (self.dy + (vehicle_data.vy + self.vy + vehicle_data.angular_speed * self.dx) * dt
-    #              + 0.5 * (vehicle_data.ay + self.ay) * (dt ** 2))
-    #
-    # """Calculate the relative values in the rotating coordinate system attached to the car (rotating but not rotated system)"""
-    # rel_ax = object_ax - vehicle_ax
-    # rel_ay = object_ay - vehicle_ay
-    # rel_dx = object_dx - vehicle_dx
-    # rel_dy = object_dy - vehicle_dy
-    # rel_vx = object_vx - vehicle_vx + rel_dy * vehicle_data.angular_speed
-    # rel_vy = object_vy - vehicle_vy - rel_dx * vehicle_data.angular_speed
-    #
-    # """Rotate the calculated values with -vehicle_fi"""
-    # self.ax = math.cos(-vehicle_fi) * rel_ax - math.sin(-vehicle_fi) * rel_ay
-    # self.ay = math.sin(-vehicle_fi) * rel_ax + math.cos(-vehicle_fi) * rel_ay
-    # self.vx = math.cos(-vehicle_fi) * rel_vx - math.sin(-vehicle_fi) * rel_vy
-    # self.vy = math.sin(-vehicle_fi) * rel_vx + math.cos(-vehicle_fi) * rel_vy
-    # self.dx = math.cos(-vehicle_fi) * rel_dx - math.sin(-vehicle_fi) * rel_dy
-    # self.dy = math.sin(-vehicle_fi) * rel_dx + math.cos(-vehicle_fi) * rel_dy
-    #
-    # self.t = next_t
+    predicted_objects_list = []
+    for obj in last_state.objects:
+        if obj.is_detecting():
+
+            """Object values in the stationary coordinate system"""
+            object_ax = obj.ax
+            object_ay = last_state.a_car + obj.ay
+            object_vx = (obj.vx - last_state.yaw_car * obj.dy) + obj.ax * dt
+            object_vy = (last_state.v_car + obj.vy + last_state.yaw_car * obj.dx) + (last_state.a_car + obj.ay) * dt
+            object_dx = obj.dx + (obj.vx - last_state.yaw_car * obj.dy) * dt + 0.5 * obj.ax * (dt ** 2)
+            object_dy = obj.dy + (last_state.a_car + obj.vy + last_state.yaw_car * obj.dx) * dt + 0.5 * (last_state.a_car + obj.ay) * (dt ** 2)
+
+            """Calculate the relative values in the rotating coordinate system attached to the car (rotating but not rotated system)"""
+            rel_ax = object_ax
+            rel_ay = object_ay - vehicle_a
+            rel_dx = object_dx
+            rel_dy = object_dy - vehicle_d
+            rel_vx = object_vx + rel_dy * last_state.yaw_car
+            rel_vy = object_vy - last_state.v_car - rel_dx * last_state.yaw_car
+
+            """Rotate the calculated values with -vehicle_fi"""
+            ax = math.cos(-vehicle_fi) * rel_ax - math.sin(-vehicle_fi) * rel_ay
+            ay = math.sin(-vehicle_fi) * rel_ax + math.cos(-vehicle_fi) * rel_ay
+            vx = math.cos(-vehicle_fi) * rel_vx - math.sin(-vehicle_fi) * rel_vy
+            vy = math.sin(-vehicle_fi) * rel_vx + math.cos(-vehicle_fi) * rel_vy
+            dx = math.cos(-vehicle_fi) * rel_dx - math.sin(-vehicle_fi) * rel_dy
+            dy = math.sin(-vehicle_fi) * rel_dx + math.cos(-vehicle_fi) * rel_dy
+
+            predicted_objects_list.append(Object(
+                dx,
+                dy,
+                vx,
+                vy,
+                ax,
+                ay
+            ))
+        else:
+            predicted_objects_list.append(obj)
 
     return SensorData(
-        [],
+        predicted_objects_list,
         vehicle_v,
         vehicle_yaw,
         next_t,
@@ -118,33 +134,85 @@ def predict(next_t: float, last_state: SensorData) -> SensorData:
     )
 
 
-def estimate(prediction: SensorData, measurement: SensorData, states: list[SensorData]) -> SensorData:
-    ALPHA = 0.9
-    BETA = 0.05
+def estimate(measurement: SensorData, states: list[SensorData], detected: list[float], x) -> SensorData:
+    ALPHA = 0.50
+    BETA = 0.33
+    DEADTIME = 1  # sec
+    DEADDISTANCE = 3
 
+    prediction = predict(measurement.t, states[-1])
     prediction_second_order = predict(measurement.t, states[-2])
+
+    estimated_objects = []
+    for o in range(SensorData.NUM_OF_OBJECTS):
+        if states[-1].objects[o].is_detecting():
+            if measurement.objects[o].is_detecting():
+                if detected[o] == states[-1].t:
+                    sp = prediction_second_order
+                    if not prediction_second_order.objects[o].is_detecting():
+                        sp = prediction
+                    estimated_objects.append(Object(
+                        ALPHA * measurement.objects[o].dx + BETA * prediction.objects[o].dx + (1 - BETA - ALPHA) * sp.objects[o].dx,
+                        ALPHA * measurement.objects[o].dy + BETA * prediction.objects[o].dy + (1 - BETA - ALPHA) * sp.objects[o].dy,
+                        ALPHA * measurement.objects[o].vx + BETA * prediction.objects[o].vx + (1 - BETA - ALPHA) * sp.objects[o].vx,
+                        ALPHA * measurement.objects[o].vy + BETA * prediction.objects[o].vy + (1 - BETA - ALPHA) * sp.objects[o].vy,
+                        ALPHA * measurement.objects[o].ax + BETA * prediction.objects[o].ax + (1 - BETA - ALPHA) * sp.objects[o].ax,
+                        ALPHA * measurement.objects[o].ay + BETA * prediction.objects[o].ay + (1 - BETA - ALPHA) * sp.objects[o].ay,
+                    ))
+                else:
+                    if (prediction.objects[o].dx - measurement.objects[o].dx) ** 2 + (
+                            prediction.objects[o].dy - measurement.objects[o].dy) ** 2 > DEADDISTANCE ** 2:
+                        states[-1].objects[o] = measurement.objects[o]
+                        estimated_objects.append(measurement.objects[o])
+                    else:
+                        sp = prediction_second_order
+                        if not prediction_second_order.objects[o].is_detecting():
+                            sp = prediction
+                        estimated_objects.append(Object(
+                            ALPHA * measurement.objects[o].dx + BETA * prediction.objects[o].dx + (1 - BETA - ALPHA) * sp.objects[o].dx,
+                            ALPHA * measurement.objects[o].dy + BETA * prediction.objects[o].dy + (1 - BETA - ALPHA) * sp.objects[o].dy,
+                            ALPHA * measurement.objects[o].vx + BETA * prediction.objects[o].vx + (1 - BETA - ALPHA) * sp.objects[o].vx,
+                            ALPHA * measurement.objects[o].vy + BETA * prediction.objects[o].vy + (1 - BETA - ALPHA) * sp.objects[o].vy,
+                            ALPHA * measurement.objects[o].ax + BETA * prediction.objects[o].ax + (1 - BETA - ALPHA) * sp.objects[o].ax,
+                            ALPHA * measurement.objects[o].ay + BETA * prediction.objects[o].ay + (1 - BETA - ALPHA) * sp.objects[o].ay,
+                        ))
+            else:
+                if detected[o] + DEADTIME < measurement.t:
+                    states[-1].objects[o] = Object()
+                    estimated_objects.append(Object())
+                else:
+                    estimated_objects.append(prediction.objects[0])
+        else:
+            estimated_objects.append(measurement.objects[o])
+
     return SensorData(
-        [],
+        estimated_objects,
         ALPHA * measurement.v_car + BETA * prediction.v_car + (1 - BETA - ALPHA) * prediction_second_order.v_car,
         ALPHA * measurement.yaw_car + BETA * prediction.yaw_car + (1 - BETA - ALPHA) * prediction_second_order.yaw_car,
-        measurement.t,
-        0,
-        0
+        measurement.t
     )
 
 
 if __name__ == "__main__":
     sensor_datas = read_dataset("../datasets/dev_data.csv")
 
+    first_detected = sensor_datas[1].t
+    last_detected = [first_detected, first_detected, first_detected, first_detected]
     calculated_sensor_datas = [sensor_datas[0], sensor_datas[1]]
-    predicted_sensor_datas = [sensor_datas[0], sensor_datas[1]]
+    output_data = [sensor_datas[0], sensor_datas[1]]
     for i in range(2, len(sensor_datas)):
-        predicted_sensor_datas.append(predict(sensor_datas[i].t, calculated_sensor_datas[-1]))
-        calculated_sensor_datas.append(estimate(predicted_sensor_datas[-1], sensor_datas[i], calculated_sensor_datas))
+        estimation = estimate(sensor_datas[i], calculated_sensor_datas, last_detected, i)
+        calculated_sensor_datas.append(estimation)
+        output_data.append(copy.deepcopy(estimation))
+        for j in range(SensorData.NUM_OF_OBJECTS):
+            if sensor_datas[i].objects[j].is_detecting():
+                last_detected[j] = sensor_datas[i].t
 
     f = open("filter_output.csv", "w")
-    f.write("{0},{1},{2},{3}\n".format("yaw", "est_yaw", "v", "est_v"))
+    f.write("{0},{1},{2},{3},{4},{5},{6},{7}\n".format("obj1x", "obj1y", "obj1vx", "obj1vy", "obj1x_est", "obj1y_est", "obj1vx_est", "obj1vy_est"))
     for i in range(len(sensor_datas)):
-        f.write("{0},{1},{2},{3}\n".format(sensor_datas[i].yaw_car, predicted_sensor_datas[i].yaw_car, sensor_datas[i].v_car,
-                                           predicted_sensor_datas[i].v_car))
+        f.write(
+            "{0},{1},{2},{3},{4},{5},{6},{7}\n".format(sensor_datas[i].objects[0].dx, sensor_datas[i].objects[0].dy, sensor_datas[i].objects[0].vx,
+                                                       sensor_datas[i].objects[0].vy, output_data[i].objects[0].dx, output_data[i].objects[0].dy,
+                                                       output_data[i].objects[0].vx, output_data[i].objects[0].vy))
     f.close()
