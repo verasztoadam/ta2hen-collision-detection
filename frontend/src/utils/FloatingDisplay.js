@@ -46,4 +46,13 @@ export default class FloatingDisplay extends THREE.Group {
         this.bgBorder.position.copy(new THREE.Vector3(- width / 2, 0, 0));
         this.add(this.bgBorder);
     }
+
+    dispose() {
+        this.bgBorder.geometry.dispose();
+        this.bgBorder.material.dispose();
+        this.bg.geometry.dispose();
+        this.bg.material.dispose();
+        this.text.geometry.dispose();
+        this.text.material.dispose();
+    }
 }

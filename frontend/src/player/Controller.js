@@ -45,7 +45,7 @@ class Controller {
         this.timer = setInterval(() => {
             if (this.timer)
                 this.setCurrentFrame(this.requestFrame(Date.now() - this.timerStart + this.timestampStart));
-        }, 10);
+        }, 20);
     }
 
     stopTimer() {

@@ -29,11 +29,9 @@ export default class Arrow extends THREE.Group {
             extrudePath: new THREE.CatmullRomCurve3(this.points)
         });
 
-        const mesh = new THREE.Mesh(geometry, this.material);
-
-        mesh.translateY(0.01 * this.level)
-
-        this.add(mesh);
+        this.lineMesh = new THREE.Mesh(geometry, this.material);
+        this.lineMesh.translateY(0.01 * this.level)
+        this.add(this.lineMesh);
     }
 
     createTriangle() {
@@ -58,11 +56,18 @@ export default class Arrow extends THREE.Group {
         geometry.rotateX(Math.PI / 2);
         geometry.rotateY(-rotationAngle);
 
-        const mesh = new THREE.Mesh(geometry, this.material);
+        this.triangleMesh = new THREE.Mesh(geometry, this.material);
 
         // Position the triangle based on the last arrow point
-        mesh.position.copy(this.points[this.points.length - 1]);
-        mesh.translateY(0.01 * this.level + this.HEIGHT / 2);
-        this.add(mesh);
+        this.triangleMesh.position.copy(this.points[this.points.length - 1]);
+        this.triangleMesh.translateY(0.01 * this.level + this.HEIGHT / 2);
+        this.add(this.triangleMesh);
+    }
+
+    dispose() {
+        this.lineMesh.geometry.dispose();
+        this.lineMesh.material.dispose();
+        this.triangleMesh.geometry.dispose();
+        this.triangleMesh.material.dispose();
     }
 }

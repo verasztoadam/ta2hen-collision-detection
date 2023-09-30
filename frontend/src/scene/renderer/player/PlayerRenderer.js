@@ -8,6 +8,8 @@ import Arrow from '../../../utils/Arrow';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export default class PlayerSceneRenderer extends SceneRenderer {
+    TRAJECTORY_LOOKUP_TIME = 2;
+
     constructor(data) {
         super();
         this.data = data;
@@ -101,6 +103,10 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
         this.removeDisplays();
 
+        this.generateSpeed(currentData);
+
+        this.carArrow.visible = currentData.content.v_car > 0;
+
         for (var i = 0; i < this.spheres.length; i++) {
             this.spheres[i].position.set(
                 objects[i].dx,
@@ -113,7 +119,8 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
             if (visible) {
                 // Object display
-                const display = new FloatingDisplay(this.font, "dx: " + objects[i].dx.toFixed(2) + "\ndy: " + objects[i].dy.toFixed(2));
+                const display = new FloatingDisplay(this.font, "dx: " + objects[i].dx.toFixed(2) + "\ndy: " + objects[i].dy.toFixed(2) +
+                    "\nv: " + objects[i].speed);
                 display.position.set(objects[i].dx, 2, objects[i].dy);
                 display.lookAt(this.camera.position);
 
@@ -128,6 +135,29 @@ export default class PlayerSceneRenderer extends SceneRenderer {
         display.lookAt(this.camera.position);
         this.displays.push(display);
         this.scene.add(display);
+
+        // Car trajectory
+        const radius = currentData.content.v_car / currentData.content.yaw_car;
+        if (currentData.content.v_car > 0.01 && Math.abs(radius) < 50) {
+            const curve = new THREE.QuadraticBezierCurve3(
+                new THREE.Vector3(0, 0.1, 0),
+                new THREE.Vector3(Math.abs(radius), 0.1, 0),
+                new THREE.Vector3(Math.abs(radius), 0.1, radius)
+            );
+            const carTrajectoryArrow = new Arrow(curve.getSpacedPoints(100)
+                .slice(0, Math.max(2, Math.min(99, this.TRAJECTORY_LOOKUP_TIME * currentData.content.v_car / curve.getLength() * 100)))
+                , 0, 0xb00000)
+            this.scene.add(carTrajectoryArrow);
+            this.displays.push(carTrajectoryArrow);
+        }
+        else if (currentData.content.v_car > 0.01) {
+            const carTrajectoryArrow = new Arrow([
+                new THREE.Vector3(0.01, 0.1, 0),
+                new THREE.Vector3(this.TRAJECTORY_LOOKUP_TIME * currentData.content.v_car, 0.1, 0.01),
+            ], 0, 0xb00000)
+            this.scene.add(carTrajectoryArrow);
+            this.displays.push(carTrajectoryArrow);
+        }
 
         this.controller.setTimestamDisplay(currentData.timestamp);
 
@@ -152,6 +182,7 @@ export default class PlayerSceneRenderer extends SceneRenderer {
 
     removeDisplays() {
         for (var i = 0; i < this.displays.length; i++) {
+            this.displays[i].dispose();
             this.scene.remove(this.displays[i]);
         }
         this.displays = []
@@ -175,5 +206,29 @@ export default class PlayerSceneRenderer extends SceneRenderer {
                 console.log(error);
             }
         );
+    }
+
+    generateSpeed(frame) {
+        const content = frame.content;
+        const objects = frame.content.objects;
+        for (var i = 0; i < objects.length; i++) {
+            var visible = (objects[i].dx !== 0 || objects[i].dy !== 0 || objects[i].vx !== 0 || objects[i].vy !== 0);
+            if (visible) {
+                var object_vx = content.v_car + objects[i].vx - content.yaw_car * objects[i].dy;
+                var object_vy = objects[i].vy + content.yaw_car * objects[i].dx;
+                objects[i].speed = Math.sqrt(object_vx * object_vx + object_vy * object_vy).toFixed(2);
+
+
+                if (objects[i].speed >= 0.01) {
+                    const uni = new THREE.Vector3(object_vx / objects[i].speed, 0, object_vy / objects[i].speed);
+                    const arrow = new Arrow([
+                        new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(0.75)),
+                        new THREE.Vector3().copy(this.spheres[i].position).add(new THREE.Vector3().copy(uni).multiplyScalar(2.75)),
+                    ], 0, 0x10A000)
+                    this.scene.add(arrow);
+                    this.displays.push(arrow);
+                }
+            }
+        }
     }
 }

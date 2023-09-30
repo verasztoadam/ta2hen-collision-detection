@@ -17,22 +17,21 @@ def predict(next_t: float, last_state: SensorData) -> SensorData:
     predicted_objects_list = []
     for obj in last_state.objects:
         if obj.is_detecting():
-
             """Object values in the stationary coordinate system"""
-            object_ax = obj.ax
-            object_ay = last_state.a_car + obj.ay
-            object_vx = (obj.vx - last_state.yaw_car * obj.dy) + obj.ax * dt
-            object_vy = (last_state.v_car + obj.vy + last_state.yaw_car * obj.dx) + (last_state.a_car + obj.ay) * dt
-            object_dx = obj.dx + (obj.vx - last_state.yaw_car * obj.dy) * dt + 0.5 * obj.ax * (dt ** 2)
-            object_dy = obj.dy + (last_state.a_car + obj.vy + last_state.yaw_car * obj.dx) * dt + 0.5 * (last_state.a_car + obj.ay) * (dt ** 2)
+            object_ax = last_state.a_car + obj.ax
+            object_ay = obj.ay
+            object_vx = (last_state.v_car + obj.vx - last_state.yaw_car * obj.dy) + (last_state.a_car + obj.ax) * dt
+            object_vy = (obj.vy + last_state.yaw_car * obj.dx) + obj.ay * dt
+            object_dx = obj.dx + (obj.vx + last_state.v_car - last_state.yaw_car * obj.dy) * dt + 0.5 * (last_state.a_car + obj.ax) * (dt ** 2)
+            object_dy = obj.dy + (obj.vy + last_state.yaw_car * obj.dx) * dt + 0.5 * obj.ay * (dt ** 2)
 
             """Calculate the relative values in the rotating coordinate system attached to the car (rotating but not rotated system)"""
-            rel_ax = object_ax
-            rel_ay = object_ay - vehicle_a
-            rel_dx = object_dx
-            rel_dy = object_dy - vehicle_d
-            rel_vx = object_vx + rel_dy * last_state.yaw_car
-            rel_vy = object_vy - last_state.v_car - rel_dx * last_state.yaw_car
+            rel_ax = object_ax - vehicle_a
+            rel_ay = object_ay
+            rel_dx = object_dx - vehicle_d
+            rel_dy = object_dy
+            rel_vx = object_vx - last_state.v_car + rel_dy * last_state.yaw_car
+            rel_vy = object_vy - rel_dx * last_state.yaw_car
 
             """Rotate the calculated values with -vehicle_fi"""
             ax = math.cos(-vehicle_fi) * rel_ax - math.sin(-vehicle_fi) * rel_ay
@@ -62,7 +61,7 @@ def predict(next_t: float, last_state: SensorData) -> SensorData:
     )
 
 
-def estimate(measurement: SensorData, states: list[SensorData], detected: list[float], x) -> SensorData:
+def estimate(measurement: SensorData, states: list[SensorData], detected: list[float]) -> SensorData:
     ALPHA = 0.50
     BETA = 0.33
     DEADTIME = 1  # sec
@@ -128,7 +127,7 @@ def filter_data(sensor_datas: list[SensorData]) -> list[SensorData]:
     output_data = [sensor_datas[0], sensor_datas[1]]
 
     for i in range(2, len(sensor_datas)):
-        estimation = estimate(sensor_datas[i], calculated_sensor_datas, last_detected, i)
+        estimation = estimate(sensor_datas[i], calculated_sensor_datas, last_detected)
         calculated_sensor_datas.append(estimation)
         for j in range(SensorData.NUM_OF_OBJECTS):
             if sensor_datas[i].objects[j].is_detecting():
